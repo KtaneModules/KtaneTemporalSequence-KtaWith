@@ -1,0 +1,10 @@
+{
+  "name": "temporalSequence-Editor",
+  "references": [
+    "temporalSequence"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": []
+}
