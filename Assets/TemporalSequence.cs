@@ -38,7 +38,7 @@ public class TemporalSequence : MonoBehaviour {
 	private int[] lightStages;
 	private int[] inputCheck;
 	
-	private bool forcedBlink = false;
+	private int forcedBlink = 9;
 	
 	//Red, Blue, Green, Yellow
 	private static Color[] lightColours = new Color[]{
@@ -124,24 +124,27 @@ public class TemporalSequence : MonoBehaviour {
 				setTime(timeStages[stage]);
 			}
 			
-			for (int i = 0; i < 4; i++) {
-				lights[i].transform.GetChild(2).GetComponent<Light>().enabled = false;
-			};
+			ClearLights();
 		}
 	}
 	
-	private IEnumerator Blink()
-    {
+	private IEnumerator Blink() {
         while (true)
         {
 			colon.enabled = !colon.enabled;
 			for (int i = 0; i < 4; i++) {
-				if ( i != lightStages[stage] || (status == "input" && !forcedBlink)) continue;
+				if ( forcedBlink != i && (i != lightStages[stage] || status == "input") ) continue;
 				lights[i].transform.GetChild(2).GetComponent<Light>().enabled = !lights[i].transform.GetChild(2).GetComponent<Light>().enabled;
 			};
             yield return new WaitForSeconds(0.5f);
         }
     }
+	
+	void ClearLights() {
+		for (int i = 0; i < 4; i++) {
+			lights[i].transform.GetChild(2).GetComponent<Light>().enabled = false;
+		};
+	}
 	
 	void rotate( KMSelectable button ) {
 		audio.PlaySoundAtTransform("Dial", transform);
@@ -150,15 +153,21 @@ public class TemporalSequence : MonoBehaviour {
 			string type = button.transform.GetChild(0).GetComponent<TextMesh>().text;
 			if (type == "H") {
 				setTime (time + 60);
+				if (Input.GetKey(KeyCode.LeftAlt)) setTime (time + 60);
 			} else if (type == "M") {
 				setTime (time + 1);
+				if (Input.GetKey(KeyCode.LeftAlt)) {
+					setTime (time + 9);
+					if ( time % 60 < 10 ) setTime (time - 60);
+				} else if ( time % 60 == 0 ) setTime (time - 60);
 			}
 		}
 	}
 	
 	void handleInput() {
-		forcedBlink = false;
+		forcedBlink = 9;
 		if (status == "input") {
+			ClearLights();
 			if ( time != inputCheck[stage+1]) {
 				StartCoroutine(Strike());
 			} else {
@@ -174,14 +183,13 @@ public class TemporalSequence : MonoBehaviour {
 	private IEnumerator Strike() {
 		Debug.LogFormat("[Temporal Sequence #{0}] Wrong, expected {1} minutes, input was {2} minutes at stage {3}", moduleId, inputCheck[stage+1], time, stage);
 		module.HandleStrike();
-		if (stage < 1) yield break;
 		status = "striking";
-		stage--;
 		setTime(timeStages[stage]);
-		yield return new WaitForSeconds(2f);
+		yield return new WaitForSeconds(3f);
 		stage++;
 		setTime(timeStages[stage]);
-		forcedBlink = true;
+		forcedBlink = lightStages[stage];
+		stage--;
 		status = "input";
 	}
 	
