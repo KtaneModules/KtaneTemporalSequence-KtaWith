@@ -251,4 +251,87 @@ public class TemporalSequence : MonoBehaviour {
 	}
 	
 	int mod(int a, int b) {  return ((a %= b) < 0) ? a+b : a;  }
+	
+	//twitch plays
+#pragma warning disable 414
+	private readonly string TwitchHelpMessage = @"!{0} submit 6:23 20:14... [Submits the specified times]";
+#pragma warning restore 414
+	IEnumerator ProcessTwitchCommand(string command)
+	{
+		string[] parameters = command.Split(' ');
+		if (parameters[0].EqualsIgnoreCase("submit"))
+		{
+			if (parameters.Length == 1)
+			{
+				yield return "sendtochaterror Please specify at least 1 time to submit!";
+				yield break;
+			}
+			for (int i = 1; i < parameters.Length; i++)
+			{
+				if (parameters[i].Length == 4)
+					parameters[i] = parameters[i].Insert(0, "0");
+				if (parameters[i].Length != 5 || parameters[i][2] != ':')
+				{
+					yield return "sendtochaterror!f The specified time '" + parameters[i] + "' is invalid!";
+					yield break;
+				}
+				int temp;
+				if (!int.TryParse(parameters[i].Substring(0, 2), out temp) || temp < 0 || temp > 23)
+				{
+					yield return "sendtochaterror!f The specified time '" + parameters[i] + "' is invalid!";
+					yield break;
+				}
+				if (!int.TryParse(parameters[i].Substring(3, 2), out temp) || temp < 0 || temp > 59)
+				{
+					yield return "sendtochaterror!f The specified time '" + parameters[i] + "' is invalid!";
+					yield break;
+				}
+			}
+			if (status != "input")
+			{
+				yield return "sendtochaterror The module is not primed for solving right now!";
+				yield break;
+			}
+			yield return null;
+			for (int i = 1; i < parameters.Length; i++)
+			{
+				string hr = parameters[i].Split(':')[0];
+				string min = parameters[i].Split(':')[1];
+				while (hourCounter.text != hr)
+				{
+					dials[0].OnInteract();
+					yield return new WaitForSeconds(.1f);
+				}
+				while (minCounter.text != min)
+				{
+					dials[1].OnInteract();
+					yield return new WaitForSeconds(.1f);
+				}
+				submit.OnInteract();
+				yield return new WaitForSeconds(.1f);
+			}
+		}
+	}
+
+	IEnumerator TwitchHandleForcedSolve()
+	{
+		while (status != "input") yield return true;
+		while (!isSolved)
+		{
+			string hr = (inputCheck[stage + 1] / 60).ToString().PadLeft(2, '0');
+			string min = (inputCheck[stage + 1] % 60).ToString().PadLeft(2, '0');
+			while (hourCounter.text != hr)
+			{
+				dials[0].OnInteract();
+				yield return new WaitForSeconds(.1f);
+			}
+			while (minCounter.text != min)
+			{
+				dials[1].OnInteract();
+				yield return new WaitForSeconds(.1f);
+			}
+			submit.OnInteract();
+			yield return new WaitForSeconds(.1f);
+		}
+	}
 }
